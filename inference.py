@@ -2,15 +2,15 @@ import os
 import requests
 from openai import OpenAI
 
-# Mandatory Environment Variables per the new instructions
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-3.5-turbo")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("OPENAI_API_KEY") or "dummy_key"
+# --- CORRECTED ENVIRONMENT VARIABLES ---
+API_BASE_URL = os.environ.get("API_BASE_URL")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
+API_KEY = os.environ.get("API_KEY")
 
 ENV_URL = "https://himanshu2100-algo-refactor-env.hf.space"
 TASK_NAME = "task_1_easy"
 BENCHMARK = "algo-refactor-env"
-
+# Initialize the client using the injected variables
 client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
 
 def run_baseline():
