@@ -72,8 +72,9 @@ class AlgoRefactorEnv:
         self.current_state = {"obs": obs.model_dump()}
         return obs
 
-    def step(self, action: Action) -> dict:
-        score = 0.0
+  def step(self, action: Action) -> dict:
+        # Changed starting score from 0.0 to 0.01
+        score = 0.01
         feedback = "Tests failed."
         is_done = True
         tests_passed = 0
@@ -96,7 +97,8 @@ class AlgoRefactorEnv:
                 
                 if tests_passed == 2:
                     if exec_time < 0.05:
-                        tests_passed += 1; score = 1.0; feedback = "O(N) time complexity achieved using Hash Map."
+                        # Changed perfect score from 1.0 to 0.99
+                        tests_passed += 1; score = 0.99; feedback = "O(N) time complexity achieved using Hash Map."
                     else:
                         score = 0.6; feedback = "Correct, but too slow (O(N^2))."
 
@@ -111,7 +113,8 @@ class AlgoRefactorEnv:
                 
                 if tests_passed == 2:
                     if exec_time < 0.01:
-                        tests_passed += 1; score = 1.0; feedback = "O(N) iterative solution achieved."
+                        # Changed perfect score from 1.0 to 0.99
+                        tests_passed += 1; score = 0.99; feedback = "O(N) iterative solution achieved."
                     else:
                         score = 0.5; feedback = "Correct logic, but recursion limit or time limit exceeded."
 
@@ -125,17 +128,19 @@ class AlgoRefactorEnv:
                 
                 if tests_passed == 2:
                     if not illegal_space:
-                        tests_passed += 1; score = 1.0; feedback = "Perfect! O(1) space achieved (e.g., using Floyd's Tortoise and Hare)."
+                        # Changed perfect score from 1.0 to 0.99
+                        tests_passed += 1; score = 0.99; feedback = "Perfect! O(1) space achieved (e.g., using Floyd's Tortoise and Hare)."
                     else:
                         score = 0.7; feedback = "Correct, but you used extra memory. Target is O(1) space."
 
         except Exception as e:
-            score = 0.0
+            # Changed error score from 0.0 to 0.01
+            score = 0.01
             feedback = f"Execution Error: {str(e)}"
 
         rew = Reward(score=score, feedback_message=feedback, tests_passed=tests_passed, total_tests=total_tests, is_done=is_done)
         return {"observation": self.current_state["obs"], "reward": rew.model_dump(), "done": is_done, "info": {}}
-
+      
 env = AlgoRefactorEnv()
 
 # --- 3. API ENDPOINTS ---
