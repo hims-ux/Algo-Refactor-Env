@@ -22,7 +22,7 @@ class Action(BaseModel):
     explanation: str = Field(..., description="Explanation of optimizations.")
 
 class Reward(BaseModel):
-    score: float = Field(..., ge=0.0, le=1.0)
+    score: float = Field(..., gt=0.0, lt=1.0)
     feedback_message: str
     tests_passed: int
     total_tests: int
