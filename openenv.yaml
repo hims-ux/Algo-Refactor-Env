@@ -1,0 +1,11 @@
+name: "Algo-Refactor-Env"
+description: "A real-world software engineering environment where agents must refactor legacy code to meet strict Big-O time and space complexity constraints."
+version: "1.0.0"
+author: "Your Team"
+tasks:
+  - id: "task_1_easy"
+    difficulty: "easy"
+  - id: "task_2_medium"
+    difficulty: "medium"
+  - id: "task_3_hard"
+    difficulty: "hard"
