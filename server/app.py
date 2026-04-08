@@ -22,7 +22,7 @@ class Action(BaseModel):
     explanation: str = Field(..., description="Explanation of optimizations.")
 
 class Reward(BaseModel):
-    score: float = Field(..., gt=0.0, lt=1.0)
+    score: float = Field(..., ge=0.0, le=1.0)
     feedback_message: str
     tests_passed: int
     total_tests: int
@@ -73,7 +73,7 @@ class AlgoRefactorEnv:
         return obs
 
     def step(self, action: Action) -> dict:
-        # Changed starting score from 0.0 to 0.01
+        # Base starting score
         score = 0.01
         feedback = "Tests failed."
         is_done = True
@@ -97,7 +97,6 @@ class AlgoRefactorEnv:
                 
                 if tests_passed == 2:
                     if exec_time < 0.05:
-                        # Changed perfect score from 1.0 to 0.99
                         tests_passed += 1; score = 0.99; feedback = "O(N) time complexity achieved using Hash Map."
                     else:
                         score = 0.6; feedback = "Correct, but too slow (O(N^2))."
@@ -113,7 +112,6 @@ class AlgoRefactorEnv:
                 
                 if tests_passed == 2:
                     if exec_time < 0.01:
-                        # Changed perfect score from 1.0 to 0.99
                         tests_passed += 1; score = 0.99; feedback = "O(N) iterative solution achieved."
                     else:
                         score = 0.5; feedback = "Correct logic, but recursion limit or time limit exceeded."
@@ -128,13 +126,12 @@ class AlgoRefactorEnv:
                 
                 if tests_passed == 2:
                     if not illegal_space:
-                        # Changed perfect score from 1.0 to 0.99
                         tests_passed += 1; score = 0.99; feedback = "Perfect! O(1) space achieved (e.g., using Floyd's Tortoise and Hare)."
                     else:
                         score = 0.7; feedback = "Correct, but you used extra memory. Target is O(1) space."
 
         except Exception as e:
-            # Changed error score from 0.0 to 0.01
+            # Error score
             score = 0.01
             feedback = f"Execution Error: {str(e)}"
 
