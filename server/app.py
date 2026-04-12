@@ -1,112 +1,139 @@
-import os
-import requests
-from openai import OpenAI
+from fastapi import FastAPI
+from pydantic import BaseModel
+import random
+
+app = FastAPI()
+
+# ---------------- MODELS ----------------
+
+class Observation(BaseModel):
+    task_id: str
+    difficulty: str
+    problem_description: str
+    target_language: str
+    legacy_code: str
+    target_time_complexity: str
+    target_space_complexity: str
+
+
+class Action(BaseModel):
+    refactored_code: str
+    explanation: str
+
 
 # ---------------- ENV ----------------
-API_BASE_URL = os.environ.get("API_BASE_URL")
-API_KEY = os.environ.get("API_KEY")
-MODEL_NAME = os.environ.get("MODEL_NAME")
 
-# fallback (only for local run)
-if not API_BASE_URL:
-    print("WARNING: API_BASE_URL not found, using dummy values", flush=True)
-    API_BASE_URL = "https://api.openai.com/v1"
+class CodeReviewEnv:
+    def __init__(self):
+        self.tasks = {
+            "task_1_easy": {
+                "difficulty": "easy",
+                "desc": "Fix subtraction bug",
+                "legacy": "def solution(a,b):\n    return a-b",
+                "expected": "return a+b"
+            },
+            "task_2_easy": {
+                "difficulty": "easy",
+                "desc": "Fix multiplication bug",
+                "legacy": "def solution(a,b):\n    return a+b",
+                "expected": "return a*b"
+            },
+            "task_3_easy": {
+                "difficulty": "easy",
+                "desc": "Fix division bug",
+                "legacy": "def solution(a,b):\n    return a*b",
+                "expected": "return a/b"
+            }
+        }
 
-if not API_KEY:
-    API_KEY = "dummy-key"
+        self.current_state = {}
 
-if not MODEL_NAME:
-    MODEL_NAME = "gpt-4o-mini"
+    # ---------------- RESET ----------------
+    def reset(self, task_id: str = None):
+        if task_id is None or task_id not in self.tasks:
+            task_id = random.choice(list(self.tasks.keys()))
 
-# ---------------- CONFIG ----------------
-ENV_URL = "https://himanshu2100-algo-refactor-env.hf.space"
-TASK_NAME = "task_1_easy"
-BENCHMARK = "algo-refactor-env"
+        t = self.tasks[task_id]
 
-print("=== ENV CHECK ===", flush=True)
-print("API_BASE_URL:", API_BASE_URL, flush=True)
-print("MODEL_NAME:", MODEL_NAME, flush=True)
-
-# ---------------- CLIENT ----------------
-client = OpenAI(
-    base_url=API_BASE_URL,
-    api_key=API_KEY
-)
-
-# ---------------- MAIN ----------------
-def run_baseline():
-    print(f"[START] task={TASK_NAME} env={BENCHMARK} model={MODEL_NAME}", flush=True)
-
-    # RESET
-    reset_res = requests.post(
-        f"{ENV_URL}/reset",
-        params={"task_id": TASK_NAME}
-    )
-    print("RESET STATUS:", reset_res.status_code, flush=True)
-
-    res = reset_res.json()
-    legacy_code = res.get("legacy_code", "")
-
-    prompt = f"""
-Fix this Python code.
-
-Rules:
-- Return ONLY python code
-- Function name must be 'solution'
-
-{legacy_code}
-"""
-
-    try:
-        completion = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}]
+        obs = Observation(
+            task_id=task_id,
+            difficulty=t["difficulty"],
+            problem_description=t["desc"],
+            target_language="Python",
+            legacy_code=t["legacy"],
+            target_time_complexity="O(1)",
+            target_space_complexity="O(1)"
         )
 
-        code = completion.choices[0].message.content
-        code = code.replace("```python", "").replace("```", "").strip()
+        # store state safely
+        self.current_state = {"obs": obs.model_dump()}
 
-    except Exception as e:
-        print("API ERROR:", e, flush=True)
-        code = "def solution(a,b): return a+b"
+        return obs
 
-    print("Generated Code:", code, flush=True)
+    # ---------------- STEP ----------------
+    def step(self, action: Action):
+        # ensure state exists
+        if "obs" not in self.current_state:
+            obs = self.reset()
+        else:
+            obs = self.current_state["obs"]
 
-    # STEP
-    action_payload = {
-        "refactored_code": code,
-        "explanation": "Refactored"
-    }
+        # handle dict safely
+        task_id = obs["task_id"]
+        expected = self.tasks[task_id]["expected"]
 
-    step_response = requests.post(
-        f"{ENV_URL}/step",
-        json=action_payload
-    )
+        code = action.refactored_code.lower()
 
-    print("STEP STATUS:", step_response.status_code, flush=True)
+        # grading
+        if expected in code:
+            score = random.uniform(0.7, 0.95)
+            feedback = "Correct fix"
+            passed = 1
+        else:
+            score = random.uniform(0.1, 0.4)
+            feedback = "Incorrect fix"
+            passed = 0
 
-    step_res = step_response.json()
-
-    reward = float(step_res.get("reward", {}).get("score", 0.0))
-    done = step_res.get("done", True)
-    error = step_res.get("reward", {}).get("feedback_message", "null")
-
-    done_val = str(done).lower()
-    error_val = f"'{error}'" if error else "null"
-
-    print(
-        f"[STEP] step=1 action='submit_refactor' reward={reward:.2f} done={done_val} error={error_val}",
-        flush=True
-    )
-
-    success = str(reward >= 0.7).lower()
-
-    print(
-        f"[END] success={success} steps=1 rewards={reward:.2f}",
-        flush=True
-    )
+        return {
+            "observation": obs,
+            "reward": {
+                "score": score,
+                "feedback_message": feedback,
+                "tests_passed": passed,
+                "total_tests": 1,
+                "is_done": True
+            },
+            "done": True,
+            "info": {}
+        }
 
 
-# ---------------- RUN ----------------
+# global env
+env = CodeReviewEnv()
+
+# ---------------- API ----------------
+
+@app.get("/")
+def health():
+    return {"status": "ok"}
+
+
+@app.post("/reset")
+def reset(task_id: str = None):
+    return env.reset(task_id)
+
+
+@app.post("/step")
+def step(action: Action):
+    return env.step(action)
+
+
+# ---------------- MAIN ----------------
+
+def main():
+    import uvicorn
+    uvicorn.run("server.app:app", host="0.0.0.0", port=7860)
+
+
 if __name__ == "__main__":
-    run_baseline()
+    main()
