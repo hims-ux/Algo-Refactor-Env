@@ -65,32 +65,35 @@ class CodeReviewEnv:
             target_space_complexity="O(1)"
         )
 
-        # store state safely
+        # Always store as dict
         self.current_state = {"obs": obs.model_dump()}
 
         return obs
 
     # ---------------- STEP ----------------
     def step(self, action: Action):
-        # ensure state exists
         if "obs" not in self.current_state:
-            obs = self.reset()
+            obs_obj = self.reset()
+            obs = obs_obj.model_dump()
         else:
             obs = self.current_state["obs"]
 
-        # handle dict safely
-        task_id = obs["task_id"]
-        expected = self.tasks[task_id]["expected"]
+        # Handle both dict and Observation object safely
+        if isinstance(obs, dict):
+            task_id = obs["task_id"]
+        else:
+            task_id = obs.task_id
 
+        expected = self.tasks[task_id]["expected"]
         code = action.refactored_code.lower()
 
-        # grading
+        # grading — clamped strictly between 0 and 1
         if expected in code:
-            score = random.uniform(0.7, 0.95)
+            score = random.uniform(0.701, 0.949)
             feedback = "Correct fix"
             passed = 1
         else:
-            score = random.uniform(0.1, 0.4)
+            score = random.uniform(0.101, 0.399)
             feedback = "Incorrect fix"
             passed = 0
 
