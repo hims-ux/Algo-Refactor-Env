@@ -7,7 +7,7 @@ API_BASE_URL = os.environ.get("API_BASE_URL")
 API_KEY = os.environ.get("API_KEY")
 MODEL_NAME = os.environ.get("MODEL_NAME")
 
-# fallback (only for normal run)
+# fallback (only for local run)
 if not API_BASE_URL:
     print("WARNING: API_BASE_URL not found, using dummy values", flush=True)
     API_BASE_URL = "https://api.openai.com/v1"
@@ -19,7 +19,7 @@ if not MODEL_NAME:
     MODEL_NAME = "gpt-4o-mini"
 
 # ---------------- CONFIG ----------------
-ENV_URL = "http://127.0.0.1:7860"   # ✅ FIXED
+ENV_URL = "https://himanshu2100-algo-refactor-env.hf.space"
 TASK_NAME = "task_1_easy"
 BENCHMARK = "algo-refactor-env"
 
@@ -94,7 +94,19 @@ Rules:
     done_val = str(done).lower()
     error_val = f"'{error}'" if error else "null"
 
-    print(f"[STEP] step=1 action='submit_refactor' reward={reward:.2f} done={done_val} error={error_val}", flush=True)
+    print(
+        f"[STEP] step=1 action='submit_refactor' reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True
+    )
 
     success = str(reward >= 0.99).lower()
-    print(f"[END] success={success} steps=1 rewards={reward:.2f}", flush=True)
+
+    print(
+        f"[END] success={success} steps=1 rewards={reward:.2f}",
+        flush=True
+    )
+
+
+# ---------------- RUN ----------------
+if __name__ == "__main__":
+    run_baseline()
