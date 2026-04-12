@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-import random
 
 app = FastAPI()
 
@@ -50,6 +49,7 @@ class CodeReviewEnv:
 
     # ---------------- RESET ----------------
     def reset(self, task_id: str = None):
+        import random
         if task_id is None or task_id not in self.tasks:
             task_id = random.choice(list(self.tasks.keys()))
 
@@ -65,7 +65,6 @@ class CodeReviewEnv:
             target_space_complexity="O(1)"
         )
 
-        # Always store as dict
         self.current_state = {"obs": obs.model_dump()}
 
         return obs
@@ -78,7 +77,6 @@ class CodeReviewEnv:
         else:
             obs = self.current_state["obs"]
 
-        # Handle both dict and Observation object safely
         if isinstance(obs, dict):
             task_id = obs["task_id"]
         else:
@@ -87,13 +85,13 @@ class CodeReviewEnv:
         expected = self.tasks[task_id]["expected"]
         code = action.refactored_code.lower()
 
-        # grading — clamped strictly between 0 and 1
+        # Hardcoded safe scores strictly between 0 and 1
         if expected in code:
-            score = random.uniform(0.701, 0.949)
+            score = 0.85
             feedback = "Correct fix"
             passed = 1
         else:
-            score = random.uniform(0.101, 0.399)
+            score = 0.25
             feedback = "Incorrect fix"
             passed = 0
 
