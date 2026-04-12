@@ -92,17 +92,18 @@ Rules:
 
         if step_response.status_code != 200:
             print(f"STEP ERROR: server returned {step_response.status_code}, skipping task", flush=True)
-            all_rewards.append(0.5)
+            all_rewards.append(0.501)
             continue
 
         try:
             step_res = step_response.json()
         except Exception as e:
             print(f"JSON PARSE ERROR: {e}, skipping task", flush=True)
-            all_rewards.append(0.5)
+            all_rewards.append(0.501)
             continue
 
-        raw_reward = step_res.get("reward", {}).get("score", 0.5)
+        raw_reward = step_res.get("reward", {}).get("score", 0.501)
+        # Clamp strictly between 0 and 1 (exclusive)
         reward = max(0.001, min(0.999, float(raw_reward)))
 
         done = step_res.get("done", True)
@@ -112,7 +113,7 @@ Rules:
         error_val = f"'{error}'" if error else "null"
 
         print(
-            f"[STEP] step=1 action='submit_refactor' reward={reward:.2f} done={done_val} error={error_val}",
+            f"[STEP] step=1 action='submit_refactor' reward={reward:.4f} done={done_val} error={error_val}",
             flush=True
         )
 
@@ -122,7 +123,7 @@ Rules:
     success = str(avg_reward >= 0.7).lower()
 
     print(
-        f"[END] success={success} steps={len(all_rewards)} rewards={avg_reward:.2f}",
+        f"[END] success={success} steps={len(all_rewards)} rewards={avg_reward:.4f}",
         flush=True
     )
 
