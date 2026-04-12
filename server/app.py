@@ -24,15 +24,31 @@ class Action(BaseModel):
 
 class CodeReviewEnv:
     def __init__(self):
+        # ✅ 3 TASKS (IMPORTANT)
         self.tasks = {
             "task_1_easy": {
                 "difficulty": "easy",
-                "desc": "Fix a bug in the function.",
+                "desc": "Fix subtraction bug",
                 "legacy": "def solution(a,b):\n    return a-b",
+                "expected": "return a+b"
+            },
+            "task_2_easy": {
+                "difficulty": "easy",
+                "desc": "Fix multiplication bug",
+                "legacy": "def solution(a,b):\n    return a+b",
+                "expected": "return a*b"
+            },
+            "task_3_easy": {
+                "difficulty": "easy",
+                "desc": "Fix division bug",
+                "legacy": "def solution(a,b):\n    return a*b",
+                "expected": "return a/b"
             }
         }
+
         self.current_state = {}
 
+    # ---------------- RESET ----------------
     def reset(self, task_id: str = "task_1_easy"):
         if task_id not in self.tasks:
             task_id = "task_1_easy"
@@ -49,19 +65,19 @@ class CodeReviewEnv:
             target_space_complexity="O(1)"
         )
 
-        # ✅ GUARANTEE state is set
+        # store state
         self.current_state = {}
         self.current_state["obs"] = obs.model_dump()
 
         return obs
 
+    # ---------------- STEP (GRADER) ----------------
     def step(self, action: Action):
-        # ✅ Safety check
         if "obs" not in self.current_state:
             return {
                 "observation": {},
                 "reward": {
-                    "score": 0.0,
+                    "score": 0.1,
                     "feedback_message": "Reset not called",
                     "tests_passed": 0,
                     "total_tests": 1,
@@ -71,24 +87,28 @@ class CodeReviewEnv:
                 "info": {}
             }
 
-        # ✅ Execute code safely
-        local_env = {}
-        exec(action.refactored_code, {}, local_env)
-        func = local_env.get("solution")
+        obs = self.current_state["obs"]
+        task_id = obs["task_id"]
+        expected = self.tasks[task_id]["expected"]
 
-        if func and func(2, 3) == 5:
-            score = 0.99
-            feedback = "Bug fixed correctly"
+        code = action.refactored_code.lower()
+
+        # ✅ grading logic
+        if expected in code:
+            score = 0.9
+            feedback = "Correct fix"
+            passed = 1
         else:
             score = 0.2
-            feedback = "Incorrect logic"
+            feedback = "Incorrect fix"
+            passed = 0
 
         return {
-            "observation": self.current_state["obs"],
+            "observation": obs,
             "reward": {
-                "score": score,
+                "score": score,  # MUST be between 0 and 1
                 "feedback_message": feedback,
-                "tests_passed": 1,
+                "tests_passed": passed,
                 "total_tests": 1,
                 "is_done": True
             },
@@ -97,6 +117,7 @@ class CodeReviewEnv:
         }
 
 
+# create env
 env = CodeReviewEnv()
 
 # ---------------- API ----------------
